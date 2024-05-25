@@ -2,7 +2,7 @@
 MAX_INT = 1 << (32-1) - 1
 
 
-def hamming_distance(x: str, y: str):
+def hamming_distance(x: str, y: str) -> int:
     distance = 0
     for cx, cy in zip(x, y):
         if cx != cy:
@@ -58,13 +58,18 @@ class ViterbiDecoder:
                     self.outputs[i] += "0"
         print(self.outputs)
 
-    def _branch_metric(self, current_bits, src_state, dest_state) -> int:
+    def _branch_metric(self, 
+                       current_bits: str, 
+                       src_state: int, 
+                       dest_state: int) -> int:
         # bit which caused src_state to transition to dest_state
         bit = (dest_state >> (self.constraint-2)) << (self.constraint - 1)
         encoder_input = src_state | bit
         return hamming_distance(current_bits, self.outputs[encoder_input])
 
-    def _path_metric(self, current_bits, state) -> tuple[int, int]:
+    def _path_metric(self, 
+                     current_bits: str, 
+                     state: int) -> tuple[int, int]:
         # mask last len(state)-1 bits of the current state which were
         # the leading bits of the previous source states, shift the masked
         # bits to the left by 1 and then get the respective source states
@@ -85,7 +90,7 @@ class ViterbiDecoder:
         else:
             return pm2, src_state2
 
-    def _update_path_metrics(self, current_bits: str):
+    def _update_path_metrics(self, current_bits: str) -> None:
         new_path_metrics = []
         new_trellis_column = []
         for state in range(self.states_count):
@@ -95,7 +100,7 @@ class ViterbiDecoder:
         self.path_metrics = new_path_metrics
         self.trellis.append(new_trellis_column)
 
-    def _compute_metrics(self):
+    def _compute_metrics(self) -> None:
         self.path_metrics = []
         self.trellis = []
         for i in range(1 << (self.constraint-1)):
@@ -115,13 +120,13 @@ class ViterbiDecoder:
         print(self.path_metrics)
         print(self.trellis)
 
-    def _min_path_metric_index(self):
+    def _min_path_metric_index(self) -> int:
         min_value = min(self.path_metrics)
         for i, v in enumerate(self.path_metrics):
             if v == min_value:
                 return i
 
-    def _traceback(self):
+    def _traceback(self) -> None:
         decoded = ""
         state = self._min_path_metric_index()
         for i in range(len(self.trellis)-1, -1, -1):
@@ -138,5 +143,5 @@ class ViterbiDecoder:
     
     
 if __name__ == "__main__":
-    decoder = ViterbiDecoder(3, [5,7,1,2])
-    print(decoder.decode("11101011100100101011011110011100"))
+    decoder = ViterbiDecoder(3, [7, 5])
+    print(decoder.decode("1110000110"))
