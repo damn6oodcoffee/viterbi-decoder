@@ -1,22 +1,6 @@
+from bit_funcs import hamming_distance, reverse_bits
 
 MAX_INT = 1 << (32-1) - 1
-
-
-def hamming_distance(x: str, y: str) -> int:
-    distance = 0
-    for cx, cy in zip(x, y):
-        if cx != cy:
-            distance += 1
-    return distance 
-
-
-def reverse_bits(bits_count, val) -> int:
-    output = 0
-    for i in range(bits_count-1, -1, -1):
-        output = (output << 1) + (val & 1)
-        val >>= 1
-    return output
-
 
 class ViterbiDecoder:
 
@@ -39,7 +23,7 @@ class ViterbiDecoder:
         return self.decoded_bits
 
     def _init_outputs(self) -> None:
-        # pre-compute encoder outputs from all possible inputs
+        '''Заранее просчитать соответствующие выходы для всех возможных входов кодера'''
         self.outputs = []
         encoder_inputs_count = 1 << self.constraint
         for i in range(encoder_inputs_count):
@@ -62,7 +46,7 @@ class ViterbiDecoder:
                        current_bits: str, 
                        src_state: int, 
                        dest_state: int) -> int:
-        # bit which caused src_state to transition to dest_state
+        # бит, который пришел на кодер и перевел его из состояния src_state в dest_state
         bit = (dest_state >> (self.constraint-2)) << (self.constraint - 1)
         encoder_input = src_state | bit
         return hamming_distance(current_bits, self.outputs[encoder_input])
@@ -70,9 +54,10 @@ class ViterbiDecoder:
     def _path_metric(self, 
                      current_bits: str, 
                      state: int) -> tuple[int, int]:
-        # mask last len(state)-1 bits of the current state which were
-        # the leading bits of the previous source states, shift the masked
-        # bits to the left by 1 and then get the respective source states
+        # Маскируем последние len(state)-1 бит текущего состояния, которые
+        # были старшими битами в исходных состояниях src_state1,2.
+        # Смещаем маскированные биты на 1 влево и затем получаем 
+        # исходные состояния src_state1,2.
         s = (state & ((1 << (self.constraint - 2)) - 1)) << 1
         src_state1 = s
         src_state2 = s | 1
@@ -103,7 +88,7 @@ class ViterbiDecoder:
     def _compute_metrics(self) -> None:
         self.path_metrics = []
         self.trellis = []
-        for i in range(1 << (self.constraint-1)):
+        for i in range(self.states_count):
             self.path_metrics.append(MAX_INT)
         self.path_metrics[0] = 0
 
@@ -111,12 +96,11 @@ class ViterbiDecoder:
             if i + self.parity_bits_count >= len(self.bits):
                 current_bits = self.bits[i:]
             else:
-                current_bits = self.bits[i:i + self.parity_bits_count]
-
+                current_bits = self.bits[i:i+self.parity_bits_count]
             while len(current_bits) < self.parity_bits_count:
                 current_bits += "0"
-            
             self._update_path_metrics(current_bits)
+
         print(self.path_metrics)
         print(self.trellis)
 
